@@ -1,6 +1,4 @@
-// Script para crear usuarios de prueba
 require('dotenv').config();
-
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
@@ -8,9 +6,16 @@ const User = require('./models/User');
 async function seedDatabase() {
   try {
     console.log('🔄 Conectando a MongoDB...');
-    console.log('URI:', process.env.MONGODB_URI);
-    
-    await mongoose.connect(process.env.MONGODB_URI);
+    const MONGO_URI = process.env.MONGODB_URI;
+    if (!MONGO_URI) {
+      console.error('❌ MONGODB_URI no está definida');
+      process.exit(1);
+    }
+
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
     console.log('✅ Conectado a MongoDB');
 
     const testUsers = [
@@ -19,30 +24,29 @@ async function seedDatabase() {
       { username: 'carlos', email: 'carlos@example.com', password: 'password123', role: 'Portero' }
     ];
 
+    let createdCount = 0;
+    let skippedCount = 0;
+
     for (const userData of testUsers) {
       const existing = await User.findOne({ username: userData.username });
       if (existing) {
-        console.log(`⚠️  Usuario "${userData.username}" ya existe`);
+        console.log(`⚠️ Usuario "${userData.username}" ya existe`);
+        skippedCount++;
         continue;
       }
 
       const hashedPassword = await bcrypt.hash(userData.password, 10);
-      const user = new User({
-        username: userData.username,
-        email: userData.email,
-        password: hashedPassword,
-        role: userData.role
-      });
-
+      const user = new User({ ...userData, password: hashedPassword });
       await user.save();
       console.log(`✅ Usuario creado: ${userData.username} (${userData.role})`);
+      createdCount++;
     }
 
-    console.log('\n✨ ¡Usuarios de prueba creados exitosamente!');
-    await mongoose.connection.close();
+    console.log(`\n✨ Seed completado. Creados: ${createdCount}, existentes: ${skippedCount}`);
+    await mongoose.disconnect();
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('❌ Error en seed:', error.message);
     process.exit(1);
   }
 }
