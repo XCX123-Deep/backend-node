@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Usuarios - Safe Entry</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Safe Entry</h1>
+        <p class="subtitle">Crear Usuarios de Prueba</p>
+        
+        <form id="createForm">
+            <div class="input-group">
+                <label for="username">Usuario:</label>
+                <input type="text" id="username" placeholder="ej: juan" value="juan" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" placeholder="ej: juan@example.com" value="juan@example.com" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Contraseña:</label>
+                <input type="text" id="password" placeholder="ej: password123" value="password123" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="role">Rol:</label>
+                <select id="role" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    <option value="Residente">Residente</option>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Portero">Portero</option>
+                </select>
+            </div>
+            
+            <button type="submit">Crear Usuario</button>
+            <div class="loading" id="loading">⏳ Creando usuario...</div>
+        </form>
+        
+        <button onclick="createAllUsers()" style="margin-top: 10px; background: #28a745;">
+            ⚡ Crear Todos los Usuarios de Prueba
+        </button>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://192.168.1.10:3000/api/auth';
+        
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            
+            await createUser(username, email, password, role);
+        });
+        
+        async function createUser(username, email, password, role) {
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const button = document.querySelector('button[type="submit"]');
+            
+            loading.classList.add('active');
+            button.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username,
+                        email,
+                        password,
+                        role
+                    })
+                });
+                
+                const data = await response.json();
+                
+                loading.classList.remove('active');
+                button.disabled = false;
+                
+                if (response.ok) {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <strong>✅ Usuario Creado!</strong>
+                        <pre>${JSON.stringify(data.user, null, 2)}</pre>
+                    `;
+                    document.getElementById('createForm').reset();
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = `<strong>❌ Error:</strong> ${data.error}`;
+                }
+            } catch (error) {
+                loading.classList.remove('active');
+                button.disabled = false;
+                result.className = 'result error';
+                result.innerHTML = `<strong>❌ Error de conexión:</strong> ${error.message}`;
+            }
+        }
+        
+        async function createAllUsers() {
+            const users = [
+                { username: 'juan', email: 'juan@example.com', password: 'password123', role: 'Residente' },
+                { username: 'maria', email: 'maria@example.com', password: 'password123', role: 'Administrador' },
+                { username: 'carlos', email: 'carlos@example.com', password: 'password123', role: 'Portero' }
+            ];
+            
+            const result = document.getElementById('result');
+            result.className = 'result';
+            result.innerHTML = '⏳ Creando usuarios...';
+            
+            const createdUsers = [];
+            
+            for (const user of users) {
+                try {
+                    const response = await fetch(`${API_URL}/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(user)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        createdUsers.push({
+                            status: '✅',
+                            username: user.username,
+                            role: user.role
+                        });
+                    } else {
+                        createdUsers.push({
+                            status: '⚠️',
+                            username: user.username,
+                            error: data.error
+                        });
+                    }
+                } catch (error) {
+                    createdUsers.push({
+                        status: '❌',
+                        username: user.username,
+                        error: error.message
+                    });
+                }
+            }
+            
+            result.className = 'result success';
+            result.innerHTML = `
+                <strong>✅ Proceso Completado!</strong>
+                <pre>${JSON.stringify(createdUsers, null, 2)}</pre>
+                <p style="margin-top: 10px; font-size: 14px;">
+                    <strong>Credenciales de prueba:</strong><br>
+                    👤 juan / password123 (Residente)<br>
+                    👤 maria / password123 (Administrador)<br>
+                    👤 carlos / password123 (Portero)
+                </p>
+            `;
+        }
+    </script>
+</body>
+</html>
